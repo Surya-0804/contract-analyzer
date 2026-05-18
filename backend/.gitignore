@@ -1,1 +1,61 @@
+# Virtual environments
 .venv/
+venv/
+env/
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Python version (keep this tracked)
+# .python-version
+
+# Build / packaging
+build/
+dist/
+*.egg-info/
+*.egg
+
+# Logs
+*.log
+logs/
+
+# Env files
+.env
+
+# Test / coverage
+.pytest_cache/
+.coverage
+.coverage.*
+htmlcov/
+
+# Type checking
+.mypy_cache/
+
+# Linting
+.ruff_cache/
+
+# IDEs
+.vscode/
+.idea/
+
+# Database
+*.sqlite3
+instance/
+
+# Static outputs
+staticfiles/
+assets/
+
+# Docker
+.envrc
+docker-compose.override.yml
+
+# UV cache
+.uv/
+
+# Windows junk
+*.tmp
+*.bak

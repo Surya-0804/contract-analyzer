@@ -6,7 +6,7 @@
 
 PYTHON   := uv run python
 UVICORN  := uv run uvicorn
-APP      := app.main:app
+APP      := main:app
 
 # ── Help ──────────────────────────────────────────────────────────────────────
 help:
