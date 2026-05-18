@@ -15,6 +15,7 @@ dependencies = [
     "pydantic>=2.8.0",
     "pydantic-settings>=2.4.0",
     "python-dotenv>=1.0.0",
+    "pymupdf4llm>=1.27.0",
 ]
 
 [project.optional-dependencies]
