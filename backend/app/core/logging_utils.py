@@ -79,20 +79,20 @@ class AppLogger:
     def __init__(self, name: str):
         self._logger = logging.getLogger(name)
 
-    def info(self, message: str, **kwargs):
-        self._logger.info(message, **kwargs)
+    def info(self, message: str, *args, **kwargs):
+        self._logger.info(message, *args, stacklevel=2, **kwargs)
 
-    def debug(self, message: str, **kwargs):
-        self._logger.debug(message, **kwargs)
+    def debug(self, message: str, *args, **kwargs):
+        self._logger.debug(message, *args, stacklevel=2, **kwargs)
 
-    def warning(self, message: str, **kwargs):
-        self._logger.warning(message, **kwargs)
+    def warning(self, message: str, *args, **kwargs):
+        self._logger.warning(message, *args, stacklevel=2, **kwargs)
 
-    def error(self, message: str, exc_info: bool = False, **kwargs):
-        self._logger.error(message, exc_info=exc_info, **kwargs)
+    def error(self, message: str, *args, exc_info: bool = False, **kwargs):
+        self._logger.error(message, *args, exc_info=exc_info, stacklevel=2, **kwargs)
 
-    def critical(self, message: str, exc_info: bool = False, **kwargs):
-        self._logger.critical(message, exc_info=exc_info, **kwargs)
+    def critical(self, message: str, *args, exc_info: bool = False, **kwargs):
+        self._logger.critical(message, *args, exc_info=exc_info, stacklevel=2, **kwargs)
 
 
 def get_logger(name: str) -> AppLogger:
