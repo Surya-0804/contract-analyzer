@@ -1,5 +1,6 @@
 from fastapi import APIRouter, UploadFile, File, HTTPException
 
+from app.core.llm import LLMResponseError
 from app.nodes.ingestion import IngestionNode
 from app.nodes.segment import segment_node
 from app.state import ContractState
@@ -18,7 +19,7 @@ async def analyze_contract(file: UploadFile = File(...)):
 
 	# ── Ingest ──────────────────────────────────────────
 	try:
-		raw_text = ingestion_node.ingest(file_bytes)
+		raw_text, document_metadata = ingestion_node.ingest_with_metadata(file_bytes)
 	except ValueError as e:
 		raise HTTPException(status_code=400, detail=str(e))
 
@@ -26,13 +27,17 @@ async def analyze_contract(file: UploadFile = File(...)):
 	state: ContractState = {
 		"file_bytes": file_bytes,
 		"raw_pdf_text": raw_text,
+		"document_metadata": document_metadata,
 		"clauses": [],
 		"contradictions": [],
 		"final_report": "",
 	}
 
 	# ── Segment ─────────────────────────────────────────
-	state = await segment_node(state)
+	try:
+		state = await segment_node(state)
+	except LLMResponseError as e:
+		raise HTTPException(status_code=502, detail=str(e))
 
 	# ── Return clauses for now (graph wires the rest) ───
 	return {"clauses": state["clauses"], "total": len(state["clauses"]) }

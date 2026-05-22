@@ -18,6 +18,7 @@ class ContractState(TypedDict, total=False):
 
     # ── Ingest ────────────────────────────
     raw_pdf_text: str
+    document_metadata: dict
 
     # ── Segment ───────────────────────────
     clauses: List[Clause]
@@ -27,3 +28,4 @@ class ContractState(TypedDict, total=False):
 
     # ── Report ────────────────────────────
     final_report: str
+    llm_metadata: dict
