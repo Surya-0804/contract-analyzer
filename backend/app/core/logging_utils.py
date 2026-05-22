@@ -1,9 +1,8 @@
 from __future__ import annotations
 
-import json
 import logging
 from datetime import datetime
-from typing import Optional, Any, Dict
+from typing import Optional
 from contextvars import ContextVar
 
 # ─────────────────────────────────────────────────────────────
@@ -21,27 +20,23 @@ def clear_request_id():
     _request_id_ctx.set(None)
 
 
+def _format_context() -> str:
+    request_id = _request_id_ctx.get()
+    return f"[REQUEST_ID: {request_id}]" if request_id else ""
+
+
 # ─────────────────────────────────────────────────────────────
 # JSON Formatter
 # ─────────────────────────────────────────────────────────────
 
-class JSONFormatter(logging.Formatter):
+class RequestFormatter(logging.Formatter):
     def format(self, record: logging.LogRecord) -> str:
-        log_data: Dict[str, Any] = {
-            "timestamp": datetime.utcnow().isoformat(),
-            "level": record.levelname,
-            "message": record.getMessage(),
-            "module": record.name,
-            "file": record.filename,
-            "line": record.lineno,
-            "request_id": _request_id_ctx.get(),
-        }
-
+        record.request_id = _request_id_ctx.get() or "-"
+        record.asctime = datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S")
+        message = super().format(record)
         if record.exc_info:
-            import traceback
-            log_data["stack_trace"] = traceback.format_exc()
-
-        return json.dumps(log_data, ensure_ascii=False)
+            message = f"{message}\n{self.formatException(record.exc_info)}"
+        return message
 
 
 # ─────────────────────────────────────────────────────────────
@@ -55,7 +50,9 @@ def configure_logging(
     logger = logging.getLogger()
     logger.setLevel(level)
 
-    formatter = JSONFormatter()
+    formatter = RequestFormatter(
+        fmt="%(asctime)s - %(levelname)s - %(message)s - File:%(filename)s - Line:%(lineno)d"
+    )
 
     file_handler = logging.FileHandler(log_file, encoding="utf-8")
     file_handler.setFormatter(formatter)
@@ -79,20 +76,28 @@ class AppLogger:
     def __init__(self, name: str):
         self._logger = logging.getLogger(name)
 
-    def info(self, message: str, *args, **kwargs):
-        self._logger.info(message, *args, stacklevel=2, **kwargs)
+    def _msg(self, message: str) -> str:
+        context = _format_context()
+        return f"{context} {message}" if context else message
 
-    def debug(self, message: str, *args, **kwargs):
-        self._logger.debug(message, *args, stacklevel=2, **kwargs)
+    def info(self, message: str, *args, stacklevel: int = 2, **kwargs):
+        self._logger.info(self._msg(message), *args, stacklevel=stacklevel, **kwargs)
 
-    def warning(self, message: str, *args, **kwargs):
-        self._logger.warning(message, *args, stacklevel=2, **kwargs)
+    def debug(self, message: str, *args, stacklevel: int = 2, **kwargs):
+        self._logger.debug(self._msg(message), *args, stacklevel=stacklevel, **kwargs)
 
-    def error(self, message: str, *args, exc_info: bool = False, **kwargs):
-        self._logger.error(message, *args, exc_info=exc_info, stacklevel=2, **kwargs)
+    def warning(self, message: str, *args, stacklevel: int = 2, **kwargs):
+        self._logger.warning(self._msg(message), *args, stacklevel=stacklevel, **kwargs)
 
-    def critical(self, message: str, *args, exc_info: bool = False, **kwargs):
-        self._logger.critical(message, *args, exc_info=exc_info, stacklevel=2, **kwargs)
+    def error(self, message: str, *args, exc_info: bool = False, stacklevel: int = 2, **kwargs):
+        self._logger.error(
+            self._msg(message), *args, exc_info=exc_info, stacklevel=stacklevel, **kwargs
+        )
+
+    def critical(self, message: str, *args, exc_info: bool = False, stacklevel: int = 2, **kwargs):
+        self._logger.critical(
+            self._msg(message), *args, exc_info=exc_info, stacklevel=stacklevel, **kwargs
+        )
 
 
 def get_logger(name: str) -> AppLogger:

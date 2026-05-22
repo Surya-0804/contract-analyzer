@@ -23,8 +23,9 @@ class Settings(BaseSettings):
         default="nvidia/nemotron-3-nano-omni-30b-a3b-reasoning:free",
         alias="OPENROUTER_MODEL",
     )
-    openai_timeout_seconds: float = Field(default=60.0, alias="OPENAI_TIMEOUT_SECONDS")
+    openai_timeout_seconds: float = Field(default=90.0, alias="OPENAI_TIMEOUT_SECONDS")
     openai_max_retries: int = Field(default=1, alias="OPENAI_MAX_RETRIES")
+    llm_warn_input_tokens: int = Field(default=8000, alias="LLM_WARN_INPUT_TOKENS")
 
 
 @lru_cache(maxsize=1)

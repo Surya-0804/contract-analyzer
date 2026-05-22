@@ -20,11 +20,11 @@ class IngestionNode:
         self.max_bytes = max_bytes
         self.max_pages = max_pages
 
-    def ingest(self, file_bytes: bytes) -> str:
+    def ingest_with_metadata(self, file_bytes: bytes) -> tuple[str, dict]:
         if not isinstance(file_bytes, (bytes, bytearray)):
             raise ValueError("file_bytes must be bytes-like")
         if len(file_bytes) == 0:
-            return ""
+            return "", {"page_count": 0, "file_size_bytes": 0}
         if len(file_bytes) > self.max_bytes:
             raise ValueError(f"file too large ({len(file_bytes)} bytes)")
 
@@ -35,14 +35,21 @@ class IngestionNode:
             raise ValueError("Invalid or corrupted PDF file") from exc
 
         try:
+            metadata = {
+                "page_count": doc.page_count,
+                "file_size_bytes": len(file_bytes),
+            }
             pages = list(range(self.max_pages)) if self.max_pages else None
             text = pymupdf4llm.to_markdown(doc, pages=pages)
             if not text.strip():
                 raise ValueError("No extractable text found. PDF may be scanned.")
-            return text
+            return text, metadata
         finally:
             try:
                 doc.close()
             except Exception:
                 logger.debug("error closing document", exc_info=True)
-                
+
+    def ingest(self, file_bytes: bytes) -> str:
+        text, _ = self.ingest_with_metadata(file_bytes)
+        return text
