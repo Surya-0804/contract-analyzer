@@ -30,10 +30,11 @@ Backend layout:
 - `main.py`: FastAPI entrypoint, CORS setup, middleware, `/health`, and router mounting
 - `app/api/routes/analyze.py`: `POST /api/v1/analyze` endpoint
 - `app/core/`: settings, logging, config, and LLM helpers
-- `app/nodes/`: pipeline nodes including ingestion and segmentation
+- `app/nodes/`: pipeline nodes including ingestion, segmentation, evaluation, contradiction detection, and reporting
 - `app/prompts/`: prompt message definitions used by nodes
 - `app/schemas/`: Pydantic output schemas for structured LLM responses
 - `app/state.py`: shared `ContractState` and `Clause` typed dictionaries
+- `app/utils/knowledge_base.py`: static evaluation baselines used by the evaluate node
 - `scripts/check_docs_updated.py`: docs policy helper
 - `Makefile`, `pyproject.toml`, `uv.lock`: toolchain and dependency definitions
 
@@ -53,10 +54,16 @@ Current request flow:
 5. `segment_node(...)` chunks long documents, calls the LLM for structured JSON,
    deduplicates clauses by normalized text, and stores token usage in
    `state["llm_metadata"]["segment"]`.
-6. The API currently returns extracted clauses and a total count.
+6. `evaluate_node(...)` classifies each clause, assigns a risk score, and stores
+   reasoning using the static knowledge base baselines.
+7. `contradict_node(...)` reviews all clauses together and returns only confirmed
+   logical or numerical contradictions.
+8. `report_node(...)` synthesizes a markdown report from the evaluated clauses and
+   contradictions.
+9. The API returns clauses, contradictions, the final report, and a total count.
 
-Important constraint: references in `state.py` to contradiction detection and reporting
-are placeholders. Those stages are not wired yet.
+Important constraint: the knowledge base is static. The backend does not perform web
+search during clause evaluation.
 
 ## Development Commands
 
@@ -67,9 +74,9 @@ Run all commands from `backend/`.
 - `make run`: start the FastAPI dev server with reload on port `8000`
 - `make lint`: run `ruff check .`
 - `make format`: run `ruff format .`
-- `make test`: run `pytest tests/ -v`
+- `make test`: run `pytest tests/ -v` when `tests/` exists
 - `make docs-check`: require Markdown updates for code or config changes
-- `make check`: run docs check, lint, and tests
+- `make check`: run docs check, lint, and tests when `tests/` exists
 
 Preferred local loop:
 
@@ -139,6 +146,12 @@ Segmentation-specific rules:
   deduplication
 - Preserve usage metadata aggregation if you change chunking or prompt invocation
   behavior
+
+Evaluation-specific rules:
+
+- Use `app/utils/knowledge_base.py` for baseline policy guidance
+- Keep classification and risk scoring merged in the evaluate stage
+- Do not introduce live web lookups into the evaluation flow
 
 When adding a new LLM-backed node:
 

@@ -44,14 +44,22 @@ format:
 
 # ── Tests ─────────────────────────────────────────────────────────────────────
 test:
-	uv run pytest tests/ -v
+	@if [ -d tests ]; then \
+		uv run pytest tests/ -v; \
+	else \
+		echo "No tests/ directory present; skipping pytest."; \
+	fi
 
 docs-check:
 	uv run python scripts/check_docs_updated.py
 
 check: docs-check
 	uv run ruff check .
-	uv run pytest tests/ -v
+	@if [ -d tests ]; then \
+		uv run pytest tests/ -v; \
+	else \
+		echo "No tests/ directory present; skipping pytest."; \
+	fi
 
 # ── Clean ─────────────────────────────────────────────────────────────────────
 clean:

@@ -24,8 +24,12 @@ def main(argv: list[str]) -> int:
         return 0
 
     print(
-        "Markdown docs must be updated when implementation, config, tests, examples, or workflow files change.\n"
-        "Update README.md, AGENTS.md, docs/*.md, or another relevant Markdown file in the same change.",
+        (
+            "Markdown docs must be updated when implementation, config, tests, "
+            "examples, or workflow files change.\n"
+            "Update README.md, AGENTS.md, docs/*.md, or another relevant "
+            "Markdown file in the same change."
+        ),
         file=sys.stderr,
     )
     return 1

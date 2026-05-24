@@ -10,9 +10,10 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+from app.api.routes.analyze import router as analyze_router
 from app.core.logging_utils import configure_logging, get_logger
 from app.middleware.request_logging import RequestLoggingMiddleware
-from app.api.routes.analyze import router as analyze_router
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -56,5 +57,6 @@ app.add_middleware(RequestLoggingMiddleware)
 @app.get("/health")
 async def health():
     return {"status": "ok"}
+
 
 app.include_router(analyze_router, prefix="/api/v1")

@@ -1,4 +1,4 @@
-from typing import List, TypedDict, Optional
+from typing import List, TypedDict
 
 
 class Clause(TypedDict, total=False):
@@ -7,8 +7,8 @@ class Clause(TypedDict, total=False):
     raw_text: str
 
     # Filled in evaluate node
-    clause_type: str       # Non_Compete | Notice_Period | IP_Assignment | Lock_In | Compensation | Liability | Other
-    risk_score: int   # 1 (safe) → 5 (high risk)
+    clause_type: str  # Evaluated category such as Notice_Period or Liability
+    risk_score: int  # 1 (safe) -> 5 (high risk)
     risk_reasoning: str
 
 

@@ -2,6 +2,22 @@
 
 Run commands from `backend/`.
 
+## Current pipeline
+
+`POST /api/v1/analyze` currently runs this sequence:
+
+1. PDF ingestion
+2. Clause segmentation
+3. Clause evaluation for classification and risk
+4. Cross-clause contradiction detection
+5. Final markdown report synthesis
+
+The evaluate stage uses a static knowledge base in `app/utils/knowledge_base.py`. It
+does not perform live web search.
+
+If `tests/` has not been added yet, `make test` and `make check` skip pytest instead of
+failing on a missing directory.
+
 ## Docs policy check
 
 This repo includes `scripts/check_docs_updated.py` to enforce that Markdown docs are

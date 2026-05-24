@@ -9,11 +9,14 @@ This module provides a more robust `IngestionNode` that:
 """
 
 from __future__ import annotations
+
 import fitz
 import pymupdf4llm
+
 from app.core.logging_utils import get_logger
 
 logger = get_logger(__name__)
+
 
 class IngestionNode:
     def __init__(self, max_bytes: int = 25_000_000, max_pages: int = None):

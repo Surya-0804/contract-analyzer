@@ -1,16 +1,17 @@
 from __future__ import annotations
+
 import asyncio
 from typing import List
 
+import tiktoken
 from langchain_core.prompts import ChatPromptTemplate
 
 from app.core.llm import estimate_tokens, get_llm, invoke_json_llm
+from app.core.logging_utils import get_logger
 from app.core.settings import get_settings
 from app.prompts.segment import SEGMENT_PROMPT_MESSAGES
 from app.schemas.segment import SegmentOutput
-from app.state import ContractState, Clause
-from app.core.logging_utils import get_logger
-import tiktoken
+from app.state import Clause, ContractState
 
 logger = get_logger(__name__)
 
@@ -97,7 +98,10 @@ async def segment_node(state: ContractState) -> ContractState:
         overlap=settings.segment_chunk_overlap_tokens,
     )
     logger.info(
-        "segment_node: chunked document chunk_count=%s chunk_max_tokens=%s overlap_tokens=%s delay_seconds=%s",
+        (
+            "segment_node: chunked document chunk_count=%s chunk_max_tokens=%s "
+            "overlap_tokens=%s delay_seconds=%s"
+        ),
         len(chunks),
         settings.segment_chunk_max_tokens,
         settings.segment_chunk_overlap_tokens,
@@ -128,9 +132,15 @@ async def segment_node(state: ContractState) -> ContractState:
         )
         result = result or SegmentOutput(clauses=[])
 
-        aggregated_metadata["usage_input_tokens"] += llm_metadata.get("usage_input_tokens", 0) or 0
-        aggregated_metadata["usage_output_tokens"] += llm_metadata.get("usage_output_tokens", 0) or 0
-        aggregated_metadata["usage_total_tokens"] += llm_metadata.get("usage_total_tokens", 0) or 0
+        aggregated_metadata["usage_input_tokens"] += (
+            llm_metadata.get("usage_input_tokens", 0) or 0
+        )
+        aggregated_metadata["usage_output_tokens"] += (
+            llm_metadata.get("usage_output_tokens", 0) or 0
+        )
+        aggregated_metadata["usage_total_tokens"] += (
+            llm_metadata.get("usage_total_tokens", 0) or 0
+        )
 
         for clause in result.clauses:
             all_clauses.append(

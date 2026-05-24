@@ -1,9 +1,9 @@
 from __future__ import annotations
 
 import logging
+from contextvars import ContextVar
 from datetime import datetime
 from typing import Optional
-from contextvars import ContextVar
 
 # ─────────────────────────────────────────────────────────────
 # Context (only request_id)
@@ -89,12 +89,26 @@ class AppLogger:
     def warning(self, message: str, *args, stacklevel: int = 2, **kwargs):
         self._logger.warning(self._msg(message), *args, stacklevel=stacklevel, **kwargs)
 
-    def error(self, message: str, *args, exc_info: bool = False, stacklevel: int = 2, **kwargs):
+    def error(
+        self,
+        message: str,
+        *args,
+        exc_info: bool = False,
+        stacklevel: int = 2,
+        **kwargs,
+    ):
         self._logger.error(
             self._msg(message), *args, exc_info=exc_info, stacklevel=stacklevel, **kwargs
         )
 
-    def critical(self, message: str, *args, exc_info: bool = False, stacklevel: int = 2, **kwargs):
+    def critical(
+        self,
+        message: str,
+        *args,
+        exc_info: bool = False,
+        stacklevel: int = 2,
+        **kwargs,
+    ):
         self._logger.critical(
             self._msg(message), *args, exc_info=exc_info, stacklevel=stacklevel, **kwargs
         )

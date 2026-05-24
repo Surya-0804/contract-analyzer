@@ -14,7 +14,7 @@ from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.requests import Request
 from starlette.responses import Response
 
-from app.core.logging_utils import get_logger, set_request_id, clear_request_id
+from app.core.logging_utils import clear_request_id, get_logger, set_request_id
 
 logger = get_logger(__name__)
 
@@ -30,7 +30,6 @@ def _get_client_ip(request: Request) -> str:
 
 
 class RequestLoggingMiddleware(BaseHTTPMiddleware):
-
     async def dispatch(self, request: Request, call_next) -> Response:
         request_id = request.headers.get("x-request-id") or str(uuid.uuid4())
         client_ip = _get_client_ip(request)

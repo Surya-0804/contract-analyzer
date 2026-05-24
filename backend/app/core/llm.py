@@ -5,10 +5,10 @@ import re
 import time
 from typing import Any, Type
 
+import tiktoken
+from langchain_openai import ChatOpenAI
 from openai import APIStatusError, RateLimitError
 from pydantic import BaseModel
-from langchain_openai import ChatOpenAI
-import tiktoken
 
 from app.core.logging_utils import get_logger
 from app.core.settings import get_settings
@@ -92,7 +92,11 @@ def estimate_tokens(text: str, model: str | None = None) -> int:
         return 0
 
     try:
-        encoding = tiktoken.encoding_for_model(model) if model else tiktoken.get_encoding("cl100k_base")
+        encoding = (
+            tiktoken.encoding_for_model(model)
+            if model
+            else tiktoken.get_encoding("cl100k_base")
+        )
     except Exception:
         encoding = tiktoken.get_encoding("cl100k_base")
     return len(encoding.encode(text))
@@ -215,7 +219,10 @@ async def invoke_structured_llm(chain, payload: dict):
         elapsed = time.perf_counter() - started
         logger.warning("structured LLM rate limited after %.2fs: %s", elapsed, exc)
         raise LLMProviderError(
-            "The configured model provider is rate-limiting requests. Retry shortly or use a non-free model/key.",
+            (
+                "The configured model provider is rate-limiting requests. "
+                "Retry shortly or use a non-free model/key."
+            ),
             status_code=503,
         ) from exc
     except APIStatusError as exc:
@@ -232,7 +239,9 @@ async def invoke_structured_llm(chain, payload: dict):
 
     elapsed = time.perf_counter() - started
     parsed, metadata = extract_llm_metadata(result)
-    metadata_str = " ".join(f"{key}={value}" for key, value in metadata.items()) or "no_usage_metadata"
+    metadata_str = (
+        " ".join(f"{key}={value}" for key, value in metadata.items()) or "no_usage_metadata"
+    )
     logger.info("structured LLM call completed in %.2fs %s", elapsed, metadata_str)
     return parsed, metadata
 
@@ -252,7 +261,10 @@ async def invoke_json_llm(llm, prompt, payload: dict, output_model: Type[BaseMod
         elapsed = time.perf_counter() - started
         logger.warning("JSON LLM rate limited after %.2fs: %s", elapsed, exc)
         raise LLMProviderError(
-            "The configured model provider is rate-limiting requests. Retry shortly or use a non-free model/key.",
+            (
+                "The configured model provider is rate-limiting requests. "
+                "Retry shortly or use a non-free model/key."
+            ),
             status_code=503,
         ) from exc
     except APIStatusError as exc:
@@ -269,6 +281,8 @@ async def invoke_json_llm(llm, prompt, payload: dict, output_model: Type[BaseMod
 
     elapsed = time.perf_counter() - started
     metadata = extract_message_metadata(response)
-    metadata_str = " ".join(f"{key}={value}" for key, value in metadata.items()) or "no_usage_metadata"
+    metadata_str = (
+        " ".join(f"{key}={value}" for key, value in metadata.items()) or "no_usage_metadata"
+    )
     logger.info("JSON LLM call completed in %.2fs %s", elapsed, metadata_str)
     return parsed, metadata
