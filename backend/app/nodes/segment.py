@@ -1,4 +1,5 @@
 from __future__ import annotations
+import asyncio
 from typing import List
 
 from langchain_core.prompts import ChatPromptTemplate
@@ -89,8 +90,19 @@ async def segment_node(state: ContractState) -> ContractState:
         )
 
     llm = get_llm(temperature=0)
-    chunks = chunk_text(state["raw_pdf_text"], settings.openrouter_model, max_tokens=3000, overlap=200)
-    logger.info("segment_node: chunked document chunk_count=%s", len(chunks))
+    chunks = chunk_text(
+        state["raw_pdf_text"],
+        settings.openrouter_model,
+        max_tokens=settings.segment_chunk_max_tokens,
+        overlap=settings.segment_chunk_overlap_tokens,
+    )
+    logger.info(
+        "segment_node: chunked document chunk_count=%s chunk_max_tokens=%s overlap_tokens=%s delay_seconds=%s",
+        len(chunks),
+        settings.segment_chunk_max_tokens,
+        settings.segment_chunk_overlap_tokens,
+        settings.segment_chunk_delay_seconds,
+    )
 
     all_clauses: List[Clause] = []
     aggregated_metadata = {
@@ -128,6 +140,15 @@ async def segment_node(state: ContractState) -> ContractState:
                     "raw_text": clause.raw_text,
                 }
             )
+
+        if index < len(chunks) and settings.segment_chunk_delay_seconds > 0:
+            logger.info(
+                "segment_node: sleeping before next chunk delay_seconds=%s next_chunk=%s/%s",
+                settings.segment_chunk_delay_seconds,
+                index + 1,
+                len(chunks),
+            )
+            await asyncio.sleep(settings.segment_chunk_delay_seconds)
 
     clauses = deduplicate_clauses(all_clauses)
 

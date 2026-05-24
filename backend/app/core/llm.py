@@ -5,6 +5,7 @@ import re
 import time
 from typing import Any, Type
 
+from openai import APIStatusError, RateLimitError
 from pydantic import BaseModel
 from langchain_openai import ChatOpenAI
 import tiktoken
@@ -19,6 +20,12 @@ class LLMResponseError(RuntimeError):
     pass
 
 
+class LLMProviderError(RuntimeError):
+    def __init__(self, message: str, status_code: int = 502):
+        super().__init__(message)
+        self.status_code = status_code
+
+
 def get_llm(model: str | None = None, temperature: float = 0.0, **kwargs) -> ChatOpenAI:
     """Create and return a configured ChatOpenAI instance.
 
@@ -27,13 +34,14 @@ def get_llm(model: str | None = None, temperature: float = 0.0, **kwargs) -> Cha
     try:
         settings = get_settings()
         resolved_model = model or settings.openrouter_model
-        # ensure model_kwargs includes structured response format by default
+        # Keep structured JSON output enabled by default for extraction-style tasks.
         default_model_kwargs = {"response_format": {"type": "json_object"}}
         provided_mk = kwargs.pop("model_kwargs", None)
         if isinstance(provided_mk, dict):
             model_kwargs = {**default_model_kwargs, **provided_mk}
         else:
             model_kwargs = default_model_kwargs
+        reasoning = kwargs.pop("reasoning", {"effort": "none"})
         logger.info(
             "constructing ChatOpenAI client for model=%s base_url=%s timeout=%ss retries=%s",
             resolved_model,
@@ -48,6 +56,7 @@ def get_llm(model: str | None = None, temperature: float = 0.0, **kwargs) -> Cha
             base_url=settings.openai_api_base or None,
             timeout=settings.openai_timeout_seconds,
             max_retries=settings.openai_max_retries,
+            reasoning=reasoning,
             model_kwargs=model_kwargs,
             **kwargs,
         )
@@ -180,10 +189,42 @@ def parse_model_json(content: str, output_model: Type[BaseModel]) -> BaseModel:
     return output_model.model_validate(parsed_json)
 
 
+def coerce_message_text_content(content: Any) -> str:
+    if isinstance(content, str):
+        return content
+
+    if isinstance(content, list):
+        text_parts: list[str] = []
+        for item in content:
+            if isinstance(item, dict) and item.get("type") == "text":
+                text = item.get("text")
+                if isinstance(text, str):
+                    text_parts.append(text)
+            else:
+                text_parts.append(str(item))
+        return "\n".join(part for part in text_parts if part).strip()
+
+    return str(content)
+
+
 async def invoke_structured_llm(chain, payload: dict):
     started = time.perf_counter()
     try:
         result = await chain.ainvoke(payload)
+    except RateLimitError as exc:
+        elapsed = time.perf_counter() - started
+        logger.warning("structured LLM rate limited after %.2fs: %s", elapsed, exc)
+        raise LLMProviderError(
+            "The configured model provider is rate-limiting requests. Retry shortly or use a non-free model/key.",
+            status_code=503,
+        ) from exc
+    except APIStatusError as exc:
+        elapsed = time.perf_counter() - started
+        logger.error("structured LLM provider error after %.2fs: %s", elapsed, exc, exc_info=True)
+        raise LLMProviderError(
+            f"Upstream model provider returned HTTP {exc.status_code}.",
+            status_code=502,
+        ) from exc
     except Exception as exc:
         elapsed = time.perf_counter() - started
         logger.error("structured LLM call failed after %.2fs: %s", elapsed, exc, exc_info=True)
@@ -201,12 +242,26 @@ async def invoke_json_llm(llm, prompt, payload: dict, output_model: Type[BaseMod
     try:
         messages = prompt.format_messages(**payload)
         response = await llm.ainvoke(messages)
-        content = response.content if isinstance(response.content, str) else str(response.content)
+        content = coerce_message_text_content(response.content)
         parsed = parse_model_json(content, output_model)
     except (json.JSONDecodeError, ValueError) as exc:
         elapsed = time.perf_counter() - started
         logger.error("JSON LLM parse failed after %.2fs: %s", elapsed, exc, exc_info=True)
         raise LLMResponseError("LLM returned invalid JSON") from exc
+    except RateLimitError as exc:
+        elapsed = time.perf_counter() - started
+        logger.warning("JSON LLM rate limited after %.2fs: %s", elapsed, exc)
+        raise LLMProviderError(
+            "The configured model provider is rate-limiting requests. Retry shortly or use a non-free model/key.",
+            status_code=503,
+        ) from exc
+    except APIStatusError as exc:
+        elapsed = time.perf_counter() - started
+        logger.error("JSON LLM provider error after %.2fs: %s", elapsed, exc, exc_info=True)
+        raise LLMProviderError(
+            f"Upstream model provider returned HTTP {exc.status_code}.",
+            status_code=502,
+        ) from exc
     except Exception as exc:
         elapsed = time.perf_counter() - started
         logger.error("JSON LLM call failed after %.2fs: %s", elapsed, exc, exc_info=True)

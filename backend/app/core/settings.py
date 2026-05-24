@@ -24,8 +24,11 @@ class Settings(BaseSettings):
         alias="OPENROUTER_MODEL",
     )
     openai_timeout_seconds: float = Field(default=90.0, alias="OPENAI_TIMEOUT_SECONDS")
-    openai_max_retries: int = Field(default=1, alias="OPENAI_MAX_RETRIES")
+    openai_max_retries: int = Field(default=0, alias="OPENAI_MAX_RETRIES")
     llm_warn_input_tokens: int = Field(default=8000, alias="LLM_WARN_INPUT_TOKENS")
+    segment_chunk_max_tokens: int = Field(default=5000, alias="SEGMENT_CHUNK_MAX_TOKENS")
+    segment_chunk_overlap_tokens: int = Field(default=150, alias="SEGMENT_CHUNK_OVERLAP_TOKENS")
+    segment_chunk_delay_seconds: float = Field(default=1.0, alias="SEGMENT_CHUNK_DELAY_SECONDS")
 
 
 @lru_cache(maxsize=1)

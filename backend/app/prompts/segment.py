@@ -20,7 +20,7 @@ Rules:
 Output requirements:
 - Return only valid JSON
 - Do not wrap the JSON in markdown fences
-- Use this exact shape: {"clauses":[{"clause_id":1,"heading":"...","raw_text":"..."}]}
+- Use this exact shape: {{"clauses":[{{"clause_id":1,"heading":"...","raw_text":"..."}}]}}
 - Escape newlines inside JSON strings""",
     ),
     ("human", "Contract text:\n\n{contract_text}"),
