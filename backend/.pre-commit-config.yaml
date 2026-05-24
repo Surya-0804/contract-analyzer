@@ -40,7 +40,7 @@ repos:
 
       - id: check
         name: make check
-        entry: make check
+        entry: make -C backend check
         language: system
         pass_filenames: false
         stages: [pre-push]
