@@ -30,7 +30,7 @@ install:
 
 dev:
 	uv sync --extra dev --no-install-project
-	
+
 # ── Run ───────────────────────────────────────────────────────────────────────
 run:
 	$(UVICORN) $(APP) --reload --host 0.0.0.0 --port 8000

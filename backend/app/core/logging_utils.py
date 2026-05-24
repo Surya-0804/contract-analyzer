@@ -29,6 +29,7 @@ def _format_context() -> str:
 # JSON Formatter
 # ─────────────────────────────────────────────────────────────
 
+
 class RequestFormatter(logging.Formatter):
     def format(self, record: logging.LogRecord) -> str:
         record.request_id = _request_id_ctx.get() or "-"
@@ -42,6 +43,7 @@ class RequestFormatter(logging.Formatter):
 # ─────────────────────────────────────────────────────────────
 # Configure Logging
 # ─────────────────────────────────────────────────────────────
+
 
 def configure_logging(
     log_file: str = "app.log",
@@ -71,6 +73,7 @@ def configure_logging(
 # ─────────────────────────────────────────────────────────────
 # Logger Wrapper (very thin now)
 # ─────────────────────────────────────────────────────────────
+
 
 class AppLogger:
     def __init__(self, name: str):

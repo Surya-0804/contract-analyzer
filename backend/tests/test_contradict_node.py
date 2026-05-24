@@ -92,9 +92,7 @@ async def test_replaces_existing_contradictions_with_llm_output(
 
     assert len(payloads) == 1
     assert json.loads(payloads[0]["clauses_json"]) == conflicting_clauses
-    assert result["contradictions"] == [
-        "Clause 1 and Clause 2 state different notice periods."
-    ]
+    assert result["contradictions"] == ["Clause 1 and Clause 2 state different notice periods."]
     assert result["llm_metadata"]["contradict"] == {
         "clause_count": 2,
         "contradiction_count": 1,

@@ -18,9 +18,10 @@ repos:
     hooks:
       - id: docs-updated
         name: docs updated
-        entry: uv run python scripts/check_docs_updated.py
+        entry: uv run python backend/scripts/check_docs_updated.py
         language: system
         pass_filenames: true
+        always_run: true
         stages: [pre-commit]
 
       - id: ruff-check

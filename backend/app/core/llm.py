@@ -93,9 +93,7 @@ def estimate_tokens(text: str, model: str | None = None) -> int:
 
     try:
         encoding = (
-            tiktoken.encoding_for_model(model)
-            if model
-            else tiktoken.get_encoding("cl100k_base")
+            tiktoken.encoding_for_model(model) if model else tiktoken.get_encoding("cl100k_base")
         )
     except Exception:
         encoding = tiktoken.get_encoding("cl100k_base")

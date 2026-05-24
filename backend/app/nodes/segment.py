@@ -132,15 +132,11 @@ async def segment_node(state: ContractState) -> ContractState:
         )
         result = result or SegmentOutput(clauses=[])
 
-        aggregated_metadata["usage_input_tokens"] += (
-            llm_metadata.get("usage_input_tokens", 0) or 0
-        )
+        aggregated_metadata["usage_input_tokens"] += llm_metadata.get("usage_input_tokens", 0) or 0
         aggregated_metadata["usage_output_tokens"] += (
             llm_metadata.get("usage_output_tokens", 0) or 0
         )
-        aggregated_metadata["usage_total_tokens"] += (
-            llm_metadata.get("usage_total_tokens", 0) or 0
-        )
+        aggregated_metadata["usage_total_tokens"] += llm_metadata.get("usage_total_tokens", 0) or 0
 
         for clause in result.clauses:
             all_clauses.append(

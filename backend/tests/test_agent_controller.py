@@ -227,9 +227,7 @@ async def test_step_logs_are_created_in_execution_order(
 ):
     result, calls, _ = await run_controller(base_state, segmented_clauses=clause_pair)
 
-    completed_steps = [
-        log["step"] for log in result["step_logs"] if log["status"] == "completed"
-    ]
+    completed_steps = [log["step"] for log in result["step_logs"] if log["status"] == "completed"]
 
     assert calls == ["segment", "evaluate", "contradict", "report"]
     assert result["plan"] == ["segment", "evaluate", "contradict", "report"]

@@ -8,7 +8,7 @@ import pytest
 
 from app.core.llm import LLMResponseError
 from app.nodes import evaluate
-from app.schemas.evaluate import EvaluateOutput, EvaluatedClause
+from app.schemas.evaluate import EvaluatedClause, EvaluateOutput
 from app.state import ContractState
 from app.utils.knowledge_base import BASELINES
 

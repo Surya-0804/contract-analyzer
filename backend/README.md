@@ -181,3 +181,8 @@ Module-level backend docs live in `docs/`:
 - `docs/prompts.md`
 - `docs/schemas.md`
 - `docs/docs_update_policy.md`
+
+## Recent updates
+
+- Added unit tests for agent controller, segmentation, evaluation, contradiction, and report nodes
+- Integrated pre-commit hooks for linting, formatting, and documentation enforcement
