@@ -56,6 +56,7 @@ async def evaluate_node(state: ContractState) -> ContractState:
 
     evaluations = {item.clause_id: item for item in result.clauses}
     enriched_clauses: list[Clause] = []
+    fallback_count = 0
 
     for clause in clauses:
         evaluated = evaluations.get(clause["clause_id"])
@@ -65,21 +66,34 @@ async def evaluate_node(state: ContractState) -> ContractState:
             enriched["risk_score"] = evaluated.risk_score
             enriched["risk_reasoning"] = evaluated.risk_reasoning
         else:
+            fallback_count += 1
             enriched["clause_type"] = "Other"
             enriched["risk_score"] = 1
             enriched["risk_reasoning"] = "No evaluation returned for this clause."
         enriched_clauses.append(enriched)
 
+    other_count = sum(1 for clause in enriched_clauses if clause.get("clause_type") == "Other")
+    low_confidence = fallback_count > 0 or (
+        len(enriched_clauses) > 0 and other_count == len(enriched_clauses)
+    )
+
     logger.info(
-        "evaluate_node: completed clauses=%s total_tokens=%s",
+        "evaluate_node: completed clauses=%s total_tokens=%s low_confidence=%s",
         len(enriched_clauses),
         llm_metadata.get("usage_total_tokens", "unknown"),
+        low_confidence,
     )
     return {
         **state,
         "clauses": enriched_clauses,
         "llm_metadata": {
             **state.get("llm_metadata", {}),
-            "evaluate": {"clause_count": len(enriched_clauses), **llm_metadata},
+            "evaluate": {
+                "clause_count": len(enriched_clauses),
+                "fallback_count": fallback_count,
+                "other_count": other_count,
+                "low_confidence": low_confidence,
+                **llm_metadata,
+            },
         },
     }

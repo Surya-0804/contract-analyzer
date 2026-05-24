@@ -1,11 +1,8 @@
 from fastapi import APIRouter, File, HTTPException, UploadFile
 
 from app.core.llm import LLMProviderError, LLMResponseError
-from app.nodes.contradict import contradict_node
-from app.nodes.evaluate import evaluate_node
+from app.nodes.agent_controller import run_agent_controller
 from app.nodes.ingestion import IngestionNode
-from app.nodes.report import report_node
-from app.nodes.segment import segment_node
 from app.state import ContractState
 
 router = APIRouter()
@@ -29,16 +26,17 @@ async def analyze_contract(file: UploadFile = File(...)):
         "file_bytes": file_bytes,
         "raw_pdf_text": raw_text,
         "document_metadata": document_metadata,
+        "goal": "analyze contract",
+        "plan": [],
+        "step_logs": [],
+        "retry_counts": {},
         "clauses": [],
         "contradictions": [],
         "final_report": "",
     }
 
     try:
-        state = await segment_node(state)
-        state = await evaluate_node(state)
-        state = await contradict_node(state)
-        state = await report_node(state)
+        state = await run_agent_controller(state)
     except LLMResponseError as exc:
         raise HTTPException(status_code=502, detail=str(exc)) from exc
     except LLMProviderError as exc:

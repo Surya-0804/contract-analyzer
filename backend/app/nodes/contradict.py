@@ -13,6 +13,7 @@ from app.state import ContractState
 logger = get_logger(__name__)
 
 CONTRADICT_PROMPT = ChatPromptTemplate.from_messages(CONTRADICT_PROMPT_MESSAGES)
+UNCLEAR_MARKERS = ("unclear", "may conflict", "might conflict", "potential conflict")
 
 
 def _serialize_clauses(state: ContractState) -> str:
@@ -49,11 +50,17 @@ async def contradict_node(state: ContractState) -> ContractState:
         ContradictOutput,
     )
     result = result or ContradictOutput(contradictions=[])
+    unclear = any(
+        marker in contradiction.lower()
+        for contradiction in result.contradictions
+        for marker in UNCLEAR_MARKERS
+    )
 
     logger.info(
-        "contradict_node: completed contradictions=%s total_tokens=%s",
+        "contradict_node: completed contradictions=%s total_tokens=%s unclear=%s",
         len(result.contradictions),
         llm_metadata.get("usage_total_tokens", "unknown"),
+        unclear,
     )
     return {
         **state,
@@ -63,6 +70,7 @@ async def contradict_node(state: ContractState) -> ContractState:
             "contradict": {
                 "clause_count": len(clauses),
                 "contradiction_count": len(result.contradictions),
+                "unclear": unclear,
                 **llm_metadata,
             },
         },

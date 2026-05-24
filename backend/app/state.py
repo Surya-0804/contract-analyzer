@@ -1,4 +1,4 @@
-from typing import List, TypedDict
+from typing import Any, List, TypedDict
 
 
 class Clause(TypedDict, total=False):
@@ -13,19 +13,21 @@ class Clause(TypedDict, total=False):
 
 
 class ContractState(TypedDict, total=False):
-    # ── Input ─────────────────────────────
-    file_bytes: bytes  # from FastAPI upload
+    # Input
+    file_bytes: bytes
 
-    # ── Ingest ────────────────────────────
+    # Ingestion
     raw_pdf_text: str
     document_metadata: dict
 
-    # ── Segment ───────────────────────────
+    # Shared controller memory
+    goal: str
+    plan: List[str]
+    step_logs: List[dict[str, Any]]
+    retry_counts: dict[str, int]
+
+    # Pipeline outputs
     clauses: List[Clause]
-
-    # ── Contradict ────────────────────────
     contradictions: List[str]
-
-    # ── Report ────────────────────────────
     final_report: str
     llm_metadata: dict

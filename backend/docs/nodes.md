@@ -7,12 +7,44 @@ This document covers the modules in `app/nodes/`.
 The route in `app/api/routes/analyze.py` runs these nodes in order:
 
 1. `IngestionNode.ingest_with_metadata(...)`
-2. `segment_node(...)`
-3. `evaluate_node(...)`
-4. `contradict_node(...)`
-5. `report_node(...)`
+2. `run_agent_controller(...)`
+3. `segment_node(...)`
+4. `evaluate_node(...)`
+5. `contradict_node(...)`
+6. `report_node(...)`
 
-Each node reads and updates `ContractState`.
+Each node reads and updates `ContractState`. The controller decides which analysis nodes to run.
+
+## `app/nodes/agent_controller.py`
+
+### Purpose
+
+Adds a lightweight planner/executor layer on top of the existing nodes.
+
+### Inputs and outputs
+
+- Input: `ContractState` after ingestion.
+- Output: updated `ContractState` with `goal`, `plan`, `step_logs`, `retry_counts`, and the usual analysis outputs.
+
+### Key logic
+
+- Sets a goal of `analyze contract`.
+- Builds a plan as a list of step names based on what is already present in state.
+- Skips `contradict` when there are fewer than 2 clauses.
+- Retries `evaluate` once if evaluation heuristics mark the result as low confidence.
+- Retries `contradict` once if contradiction wording looks unclear.
+
+### Pipeline fit
+
+This is the orchestration layer for the analysis workflow. It keeps the existing stage implementations and adds minimal agent-style control flow.
+
+### Example
+
+Typical plan:
+
+```python
+["segment", "evaluate", "contradict", "report"]
+```
 
 ## `app/nodes/ingestion.py`
 

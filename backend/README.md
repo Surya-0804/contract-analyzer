@@ -1,23 +1,30 @@
 # Contract Analyzer Backend
 
-Python FastAPI backend for extracting clauses from uploaded contract PDFs, evaluating clause risk, checking for contradictions, and generating a concise markdown report.
+Python FastAPI backend for extracting clauses from uploaded contract PDFs, evaluating clause risk, checking for contradictions, and generating a concise markdown report through a hybrid pipeline plus lightweight agent controller.
 
 ## Project overview
 
-The backend currently implements a narrow contract-analysis pipeline:
+The backend currently implements a narrow contract-analysis workflow:
 
 - PDF upload through `POST /api/v1/analyze`
 - PDF text extraction with PyMuPDF and `pymupdf4llm`
+- Lightweight controller that plans and executes analysis steps
 - LLM-based clause segmentation
 - LLM-based clause evaluation using a static knowledge base
 - LLM-based contradiction detection across clauses
 - LLM-based final markdown report generation
 
-The backend does not include persistent storage, user accounts, or live web research.
+The backend does not include persistent storage, user accounts, or live web research. It is not a general autonomous agent. The controller adds small agent-like behavior on top of a fixed set of pipeline nodes.
 
-## Current pipeline
+## Hybrid controller flow
 
-The analyze route runs these stages in order:
+The analyze route sets the goal to `analyze contract` and runs a small controller. The controller:
+
+- builds a plan as a list of step names
+- decides whether a step should run from current state
+- allows one retry for selected low-confidence results
+
+The default plan is:
 
 1. `segment`
 2. `evaluate`
@@ -46,11 +53,24 @@ The analyze route runs these stages in order:
 - Reviews the evaluated clause list together.
 - Returns only confirmed logical or numerical contradictions.
 - Avoids speculative or hypothetical conflicts.
+- The controller skips this step when there are fewer than 2 clauses.
 
 #### `report`
 
 - Builds the final markdown report from the evaluated clauses and contradiction list.
 - Produces sections for summary, high-risk clauses, contradictions, safe clauses, and disclaimer.
+
+## Minimal agent behavior
+
+The system is partially agent-like in a narrow, production-friendly way:
+
+- Goal: the request sets `goal = "analyze contract"`
+- Plan: the controller stores a step list in `state["plan"]`
+- Shared memory: all stages read and update `ContractState`
+- Conditional execution: the controller can skip `contradict` for very small clause sets
+- Basic iteration: the controller retries `evaluate` once when heuristics mark the output as low confidence, and retries `contradict` once when returned wording looks unclear
+
+This keeps the implementation simple while avoiding a fully hardcoded one-pass route.
 
 ## Request flow
 
@@ -58,7 +78,7 @@ The analyze route runs these stages in order:
 2. The route rejects non-PDF filenames.
 3. `IngestionNode.ingest_with_metadata(...)` validates the file, opens the PDF, and extracts markdown-like text.
 4. The backend creates a shared `ContractState`.
-5. The pipeline runs `segment -> evaluate -> contradict -> report`.
+5. The controller builds and executes a plan, usually `segment -> evaluate -> contradict -> report`.
 6. The API returns the clauses, contradictions, final report, and total clause count.
 
 ## Setup
@@ -157,6 +177,7 @@ Module-level backend docs live in `docs/`:
 
 - `docs/core.md`
 - `docs/nodes.md`
+- `docs/agent_controller.md`
 - `docs/prompts.md`
 - `docs/schemas.md`
 - `docs/docs_update_policy.md`
