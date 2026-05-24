@@ -2,7 +2,7 @@
 # Uses `uv` for all Python operations.
 # Run `make help` to see available commands.
 
-.PHONY: help install dev lint format test run clean
+.PHONY: help install dev lint format test docs-check check run clean
 
 PYTHON   := uv run python
 UVICORN  := uv run uvicorn
@@ -19,6 +19,8 @@ help:
 	@echo "  make lint        Run ruff linter"
 	@echo "  make format      Run ruff formatter"
 	@echo "  make test        Run pytest"
+	@echo "  make docs-check  Require Markdown updates for code/config changes"
+	@echo "  make check       Run docs check, lint, and tests"
 	@echo "  make clean       Remove __pycache__ and .pytest_cache"
 	@echo ""
 
@@ -42,6 +44,13 @@ format:
 
 # ── Tests ─────────────────────────────────────────────────────────────────────
 test:
+	uv run pytest tests/ -v
+
+docs-check:
+	uv run python scripts/check_docs_updated.py
+
+check: docs-check
+	uv run ruff check .
 	uv run pytest tests/ -v
 
 # ── Clean ─────────────────────────────────────────────────────────────────────
