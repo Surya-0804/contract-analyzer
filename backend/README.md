@@ -1,60 +1,162 @@
-# Backend Workflow Notes
+# Contract Analyzer Backend
 
-Run commands from `backend/`.
+Python FastAPI backend for extracting clauses from uploaded contract PDFs, evaluating clause risk, checking for contradictions, and generating a concise markdown report.
+
+## Project overview
+
+The backend currently implements a narrow contract-analysis pipeline:
+
+- PDF upload through `POST /api/v1/analyze`
+- PDF text extraction with PyMuPDF and `pymupdf4llm`
+- LLM-based clause segmentation
+- LLM-based clause evaluation using a static knowledge base
+- LLM-based contradiction detection across clauses
+- LLM-based final markdown report generation
+
+The backend does not include persistent storage, user accounts, or live web research.
 
 ## Current pipeline
 
-`POST /api/v1/analyze` currently runs this sequence:
+The analyze route runs these stages in order:
 
-1. PDF ingestion
-2. Clause segmentation
-3. Clause evaluation for classification and risk
-4. Cross-clause contradiction detection
-5. Final markdown report synthesis
+1. `segment`
+2. `evaluate`
+3. `contradict`
+4. `report`
 
-The evaluate stage uses a static knowledge base in `app/utils/knowledge_base.py`. It
-does not perform live web search.
+### What each stage does
 
-If `tests/` has not been added yet, `make test` and `make check` skip pytest instead of
-failing on a missing directory.
+#### `segment`
 
-## Docs policy check
+- Reads extracted contract text from the ingestion step.
+- Chunks long documents by token count.
+- Calls the LLM to split the contract into distinct clauses.
+- Deduplicates clauses by normalized text and reassigns sequential clause IDs.
 
-This repo includes `scripts/check_docs_updated.py` to enforce that Markdown docs are
-updated when implementation or configuration files change.
+#### `evaluate`
 
-Run it manually with:
+- Takes the clause list from `segment`.
+- Classifies each clause into one of the implemented categories:
+  `Non_Compete`, `Notice_Period`, `IP_Assignment`, `Lock_In`, `Compensation`, `Liability`, `Other`.
+- Assigns a `risk_score` from 1 to 5 and short reasoning.
+- Uses only the static baselines in `app/utils/knowledge_base.py`.
+
+#### `contradict`
+
+- Reviews the evaluated clause list together.
+- Returns only confirmed logical or numerical contradictions.
+- Avoids speculative or hypothetical conflicts.
+
+#### `report`
+
+- Builds the final markdown report from the evaluated clauses and contradiction list.
+- Produces sections for summary, high-risk clauses, contradictions, safe clauses, and disclaimer.
+
+## Request flow
+
+1. The client uploads a PDF file.
+2. The route rejects non-PDF filenames.
+3. `IngestionNode.ingest_with_metadata(...)` validates the file, opens the PDF, and extracts markdown-like text.
+4. The backend creates a shared `ContractState`.
+5. The pipeline runs `segment -> evaluate -> contradict -> report`.
+6. The API returns the clauses, contradictions, final report, and total clause count.
+
+## Setup
+
+Run commands from `backend/`.
+
+### Install dependencies
 
 ```powershell
-make docs-check
+uv sync
 ```
 
-To enable it before each commit:
+For development tools:
 
 ```powershell
 uv sync --extra dev --no-install-project
-uv run pre-commit install
-uv run pre-commit run --all-files
 ```
 
-The pre-commit configuration lives in `backend/.pre-commit-config.yaml`, so install and
-run `pre-commit` from the `backend/` directory.
-
-## Hook behavior
-
-The local hook configuration installs both `pre-commit` and `pre-push` hooks.
-
-- `pre-commit` runs hygiene checks, the backend docs policy check, `ruff check --fix`,
-  and `ruff format`
-- `pre-push` runs `make check`
-
-Use this before pushing:
+### Common commands
 
 ```powershell
+make run
+make lint
+make format
+make test
+make docs-check
 make check
 ```
 
-## Backend-specific guidance
+## Configuration
 
-Backend-specific contributor rules live in `backend/AGENTS.md`. The repo-root
-`AGENTS.md` remains the top-level guide for the whole repository.
+Settings load from `backend/.env`.
+
+Relevant environment variables:
+
+- `OPENAI_API_KEY`
+- `OPENAI_API_BASE`
+- `OPENROUTER_MODEL`
+- `OPENAI_TIMEOUT_SECONDS`
+- `OPENAI_MAX_RETRIES`
+- `LLM_WARN_INPUT_TOKENS`
+- `SEGMENT_CHUNK_MAX_TOKENS`
+- `SEGMENT_CHUNK_OVERLAP_TOKENS`
+- `SEGMENT_CHUNK_DELAY_SECONDS`
+
+## API
+
+### `POST /api/v1/analyze`
+
+Analyzes one uploaded PDF contract.
+
+#### Request
+
+- Content type: `multipart/form-data`
+- Field: `file`
+- Accepted file type: `.pdf`
+
+#### Success response
+
+```json
+{
+  "clauses": [
+    {
+      "clause_id": 1,
+      "heading": "Notice Period",
+      "raw_text": "Either party may terminate this agreement by giving 30 days notice.",
+      "clause_type": "Notice_Period",
+      "risk_score": 2,
+      "risk_reasoning": "The notice period appears within a common range."
+    }
+  ],
+  "contradictions": [],
+  "final_report": "# Executive summary\n...",
+  "total": 1
+}
+```
+
+#### Error behavior
+
+- Returns `400` for non-PDF uploads, invalid PDFs, oversized files, or PDFs with no extractable text.
+- Returns `502` when the LLM returns invalid JSON.
+- Returns `503` when the upstream model provider rate-limits requests.
+- Returns `502` for other provider-side HTTP failures surfaced by the LLM client.
+
+## Limitations
+
+- Clause evaluation uses a static knowledge base in `app/utils/knowledge_base.py`.
+- The backend does not perform web search or fetch live legal references.
+- Risk scores and contradictions depend on LLM output quality.
+- Scanned PDFs without extractable text are rejected instead of being OCR-processed here.
+- The API currently processes one uploaded file at a time and keeps state in memory for the request only.
+
+## Docs
+
+Module-level backend docs live in `docs/`:
+
+- `docs/core.md`
+- `docs/nodes.md`
+- `docs/prompts.md`
+- `docs/schemas.md`
+- `docs/docs_update_policy.md`
