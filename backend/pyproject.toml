@@ -42,3 +42,8 @@ exclude = ["notebooks"]
 
 [tool.ruff.lint]
 select = ["E", "F", "I"]
+
+[dependency-groups]
+dev = [
+    "pre-commit>=4.6.0",
+]
